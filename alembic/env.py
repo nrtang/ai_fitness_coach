@@ -24,7 +24,9 @@ from db_models import (
 config = context.config
 
 # Override sqlalchemy.url with our DATABASE_URL from env
-config.set_main_option("sqlalchemy.url", DATABASE_URL)
+# Note: We don't use set_main_option to avoid ConfigParser % interpolation issues
+if DATABASE_URL:
+    config.set_main_option("sqlalchemy.url", DATABASE_URL.replace('%', '%%'))
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.

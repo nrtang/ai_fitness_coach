@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Fitness Coach</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+</head>
+<body class="bg-gray-50" x-data="app()" x-init="init()">
+    <!-- Navigation -->
+    <nav class="bg-indigo-600 text-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <h1 class="text-2xl font-bold">🏃 AI Fitness Coach</h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span x-show="currentUser" x-text="currentUser?.name" class="text-sm"></span>
+                    <button @click="showSection = 'users'" class="px-4 py-2 rounded hover:bg-indigo-700">Switch User</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="flex h-screen">
+        <!-- Sidebar -->
+        <div class="w-64 bg-white shadow-lg">
+            <div class="p-4 space-y-2">
+                <button @click="showSection = 'dashboard'"
+                        :class="showSection === 'dashboard' ? 'bg-indigo-100 text-indigo-700' : 'text-gray-700 hover:bg-gray-100'"
+                        class="w-full text-left px-4 py-3 rounded-lg font-medium transition">
+                    📊 Dashboard
+                </button>
+                <button @click="showSection = 'workouts'"
+                        :class="showSection === 'workouts' ? 'bg-indigo-100 text-indigo-700' : 'text-gray-700 hover:bg-gray-100'"
+                        class="w-full text-left px-4 py-3 rounded-lg font-medium transition">
+                    🏃 Workouts
+                </button>
+                <button @click="showSection = 'goals'"
+                        :class="showSection === 'goals' ? 'bg-indigo-100 text-indigo-700' : 'text-gray-700 hover:bg-gray-100'"
+                        class="w-full text-left px-4 py-3 rounded-lg font-medium transition">
+                    🎯 Goals
+                </button>
+                <button @click="showSection = 'programs'"
+                        :class="showSection === 'programs' ? 'bg-indigo-100 text-indigo-700' : 'text-gray-700 hover:bg-gray-100'"
+                        class="w-full text-left px-4 py-3 rounded-lg font-medium transition">
+                    📅 Training Program
+                </button>
+                <button @click="showSection = 'strava'"
+                        :class="showSection === 'strava' ? 'bg-indigo-100 text-indigo-700' : 'text-gray-700 hover:bg-gray-100'"
+                        class="w-full text-left px-4 py-3 rounded-lg font-medium transition">
+                    🔗 Strava
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="flex-1 overflow-y-auto p-8">
+
+            <!-- User Selection -->
+            <div x-show="showSection === 'users'" class="max-w-2xl mx-auto">
+                <h2 class="text-3xl font-bold text-gray-900 mb-6">User Management</h2>
+
+                <div class="bg-white rounded-lg shadow p-6 mb-6">
+                    <h3 class="text-xl font-semibold mb-4">Create New User</h3>
+                    <form @submit.prevent="createUser" class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                            <input x-model="newUser.name" type="text" required
+                                   class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                            <input x-model="newUser.email" type="email" required
+                                   class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Unit Preference</label>
+                            <select x-model="newUser.unit_preference"
+                                    class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500">
+                                <option value="imperial">Imperial (miles, feet)</option>
+                                <option value="metric">Metric (km, meters)</option>
+                            </select>
+                        </div>
+                        <button type="submit"
+                                class="w-full bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition">
+                            Create User
+                        </button>
+                    </form>
+                </div>
+
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h3 class="text-xl font-semibold mb-4">Login to Existing Account</h3>
+                    <p class="text-gray-600 mb-4">Current user: <span class="font-semibold" x-text="currentUser?.name || 'None'"></span></p>
+
+                    <form @submit.prevent="loginWithUserId" class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">User ID</label>
+                            <input x-model="loginUserId" type="text" required placeholder="user_..."
+                                   class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500">
+                            <p class="text-xs text-gray-500 mt-1">Enter your user ID from the database</p>
+                        </div>
+                        <button type="submit"
+                                class="w-full bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition">
+                            Login
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Dashboard -->
+            <div x-show="showSection === 'dashboard'" class="max-w-6xl mx-auto">
+                <h2 class="text-3xl font-bold text-gray-900 mb-6">Dashboard</h2>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <!-- Training Load Metrics -->
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <h3 class="text-lg font-semibold text-gray-700 mb-2">CTL (Fitness)</h3>
+                        <p class="text-3xl font-bold text-indigo-600" x-text="trainingLoad.ctl || '0'"></p>
+                        <p class="text-sm text-gray-500 mt-1">42-day average</p>
+                    </div>
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <h3 class="text-lg font-semibold text-gray-700 mb-2">ATL (Fatigue)</h3>
+                        <p class="text-3xl font-bold text-orange-600" x-text="trainingLoad.atl || '0'"></p>
+                        <p class="text-sm text-gray-500 mt-1">7-day average</p>
+                    </div>
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <h3 class="text-lg font-semibold text-gray-700 mb-2">TSB (Form)</h3>
+                        <p class="text-3xl font-bold" :class="getTSBColor(trainingLoad.tsb)" x-text="trainingLoad.tsb || '0'"></p>
+                        <p class="text-sm text-gray-500 mt-1" x-text="trainingLoad.tsb_interpretation || 'N/A'"></p>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h3 class="text-xl font-semibold mb-4">Recent Workouts</h3>
+                    <template x-if="workouts.length === 0">
+                        <p class="text-gray-500">No workouts yet. Add your first workout to get started!</p>
+                    </template>
+                    <div class="space-y-2">
+                        <template x-for="workout in workouts.slice(0, 5)" :key="workout.id">
+                            <div class="p-4 bg-gray-50 rounded-lg">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <p class="font-semibold" x-text="formatDate(workout.date)"></p>
+                                        <p class="text-sm text-gray-600 capitalize" x-text="workout.run_type"></p>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="font-semibold" x-text="formatDistance(workout.metrics.distance)"></p>
+                                        <p class="text-sm text-gray-600" x-text="formatDuration(workout.metrics.moving_time)"></p>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Workouts -->
+            <div x-show="showSection === 'workouts'" class="max-w-4xl mx-auto">
+                <h2 class="text-3xl font-bold text-gray-900 mb-6">Workouts</h2>
+
+                <div class="bg-white rounded-lg shadow p-6 mb-6">
+                    <h3 class="text-xl font-semibold mb-4">Log New Workout</h3>
+                    <form @submit.prevent="createWorkout" class="space-y-4">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                                <input x-model="newWorkout.date" type="datetime-local" required
+                                       class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Run Type</label>
+                                <select x-model="newWorkout.run_type"
+                                        class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500">
+                                    <option value="easy">Easy</option>
+                                    <option value="tempo">Tempo</option>
+                                    <option value="intervals">Intervals</option>
+                                    <option value="long">Long Run</option>
+                                    <option value="recovery">Recovery</option>
+                                    <option value="race">Race</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Distance (meters)</label>
+                                <input x-model.number="newWorkout.metrics.distance" type="number" required
+                                       class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Duration (seconds)</label>
+                                <input x-model.number="newWorkout.metrics.moving_time" type="number" required
+                                       class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Average Heart Rate (optional)</label>
+                                <input x-model.number="newWorkout.metrics.average_heartrate" type="number"
+                                       class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Perceived Effort (1-10)</label>
+                                <input x-model.number="newWorkout.perceived_effort" type="number" min="1" max="10"
+                                       class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                            <textarea x-model="newWorkout.notes" rows="3"
+                                      class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"></textarea>
+                        </div>
+                        <button type="submit"
+                                class="w-full bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition">
+                            Log Workout
+                        </button>
+                    </form>
+                </div>
+
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h3 class="text-xl font-semibold mb-4">Workout History</h3>
+                    <div class="space-y-3">
+                        <template x-for="workout in workouts" :key="workout.id">
+                            <div class="p-4 border rounded-lg hover:bg-gray-50 transition">
+                                <div class="flex justify-between items-start mb-2">
+                                    <div>
+                                        <p class="font-semibold" x-text="formatDate(workout.date)"></p>
+                                        <p class="text-sm text-gray-600 capitalize" x-text="workout.run_type"></p>
+                                    </div>
+                                    <span class="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-sm font-medium"
+                                          x-text="workout.source || 'manual'"></span>
+                                </div>
+                                <div class="grid grid-cols-3 gap-4 text-sm">
+                                    <div>
+                                        <p class="text-gray-500">Distance</p>
+                                        <p class="font-semibold" x-text="formatDistance(workout.metrics.distance)"></p>
+                                    </div>
+                                    <div>
+                                        <p class="text-gray-500">Duration</p>
+                                        <p class="font-semibold" x-text="formatDuration(workout.metrics.moving_time)"></p>
+                                    </div>
+                                    <div>
+                                        <p class="text-gray-500">Pace</p>
+                                        <p class="font-semibold" x-text="formatPace(workout.metrics.average_speed)"></p>
+                                    </div>
+                                </div>
+                                <template x-if="workout.notes">
+                                    <p class="mt-2 text-sm text-gray-600" x-text="workout.notes"></p>
+                                </template>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Goals -->
+            <div x-show="showSection === 'goals'" class="max-w-2xl mx-auto">
+                <h2 class="text-3xl font-bold text-gray-900 mb-6">Goals</h2>
+
+                <div class="bg-white rounded-lg shadow p-6 mb-6">
+                    <h3 class="text-xl font-semibold mb-4">Set New Goal</h3>
+                    <form @submit.prevent="createGoal" class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Race Distance</label>
+                            <select x-model="newGoal.race_distance"
+                                    class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500">
+                                <option value="5k">5K</option>
+                                <option value="10k">10K</option>
+                                <option value="half_marathon">Half Marathon</option>
+                                <option value="marathon">Marathon</option>
+                                <option value="ultra_50k">Ultra 50K</option>
+                                <option value="ultra_50mi">Ultra 50 Mile</option>
+                                <option value="ultra_100k">Ultra 100K</option>
+                                <option value="ultra_100mi">Ultra 100 Mile</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Race Date</label>
+                            <input x-model="newGoal.race_date" type="date" required
+                                   class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Target Time (seconds)</label>
+                            <input x-model.number="newGoal.target_time_seconds" type="number" required
+                                   class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
+                                   placeholder="e.g., 10800 for 3 hours">
+                        </div>
+                        <button type="submit"
+                                class="w-full bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition">
+                            Set Goal
+                        </button>
+                    </form>
+                </div>
+
+                <div x-show="activeGoal" class="bg-white rounded-lg shadow p-6">
+                    <h3 class="text-xl font-semibold mb-4">Active Goal</h3>
+                    <div class="space-y-3">
+                        <div>
+                            <p class="text-sm text-gray-500">Race Distance</p>
+                            <p class="text-lg font-semibold capitalize" x-text="activeGoal?.race_distance.replace('_', ' ')"></p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-500">Race Date</p>
+                            <p class="text-lg font-semibold" x-text="formatDate(activeGoal?.race_date)"></p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-500">Target Time</p>
+                            <p class="text-lg font-semibold" x-text="formatDuration(activeGoal?.target_time_seconds)"></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Training Programs -->
+            <div x-show="showSection === 'programs'" class="max-w-6xl mx-auto">
+                <h2 class="text-3xl font-bold text-gray-900 mb-6">Training Program</h2>
+
+                <div class="bg-white rounded-lg shadow p-6 mb-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-xl font-semibold">Generate AI Training Program</h3>
+                        <button @click="generateProgram"
+                                :disabled="loading.program"
+                                class="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition disabled:bg-gray-400">
+                            <span x-show="!loading.program">✨ Generate Program</span>
+                            <span x-show="loading.program">Generating...</span>
+                        </button>
+                    </div>
+                    <p class="text-gray-600">Create a personalized training program based on your goal and workout history.</p>
+                </div>
+
+                <div x-show="activeProgram" class="bg-white rounded-lg shadow p-6">
+                    <h3 class="text-xl font-semibold mb-2">Active Program</h3>
+                    <p class="text-gray-600 mb-4" x-text="activeProgram?.rationale"></p>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
+                        <template x-for="week in activeProgram?.weeks || []" :key="week.week_number">
+                            <div class="border rounded-lg p-4 hover:shadow-md transition cursor-pointer"
+                                 @click="loadWeekDetails(week.week_number)">
+                                <div class="flex justify-between items-start mb-2">
+                                    <h4 class="font-semibold">Week <span x-text="week.week_number"></span></h4>
+                                    <span class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs uppercase"
+                                          x-text="week.phase"></span>
+                                </div>
+                                <p class="text-sm text-gray-600 mb-2" x-text="week.focus"></p>
+                                <p class="text-sm font-medium">
+                                    <span x-text="formatDistance(week.total_distance)"></span>
+                                </p>
+                                <p class="text-xs text-gray-500 mt-1">
+                                    <span x-text="formatDate(week.start_date)"></span> -
+                                    <span x-text="formatDate(week.end_date)"></span>
+                                </p>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- Week Details Modal -->
+                <div x-show="weekDetails" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+                     @click.self="weekDetails = null">
+                    <div class="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-2xl font-bold">Week <span x-text="weekDetails?.week_number"></span> Details</h3>
+                            <button @click="weekDetails = null" class="text-gray-500 hover:text-gray-700">✕</button>
+                        </div>
+
+                        <div class="mb-4">
+                            <p class="text-gray-600" x-text="weekDetails?.focus"></p>
+                            <p class="text-sm text-gray-500 mt-1">
+                                Phase: <span class="capitalize" x-text="weekDetails?.phase"></span> |
+                                Total: <span x-text="formatDistance(weekDetails?.total_distance)"></span>
+                            </p>
+                        </div>
+
+                        <div class="space-y-3">
+                            <template x-for="workout in weekDetails?.workouts || []" :key="workout.id">
+                                <div class="border rounded-lg p-4">
+                                    <div class="flex justify-between items-start mb-2">
+                                        <div>
+                                            <p class="font-semibold" x-text="formatDate(workout.date)"></p>
+                                            <p class="text-sm text-gray-600 capitalize" x-text="workout.run_type.replace('_', ' ')"></p>
+                                        </div>
+                                        <span class="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm"
+                                              x-text="'Zone ' + workout.intensity_zone"></span>
+                                    </div>
+                                    <p class="text-gray-700 mb-2" x-text="workout.description"></p>
+                                    <div class="grid grid-cols-2 gap-2 text-sm">
+                                        <div x-show="workout.target_distance">
+                                            <span class="text-gray-500">Target:</span>
+                                            <span class="font-medium" x-text="formatDistance(workout.target_distance)"></span>
+                                        </div>
+                                        <div x-show="workout.target_duration">
+                                            <span class="text-gray-500">Duration:</span>
+                                            <span class="font-medium" x-text="formatDuration(workout.target_duration)"></span>
+                                        </div>
+                                    </div>
+                                    <p x-show="workout.notes" class="text-sm text-gray-600 mt-2 italic" x-text="workout.notes"></p>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Strava -->
+            <div x-show="showSection === 'strava'" class="max-w-2xl mx-auto">
+                <h2 class="text-3xl font-bold text-gray-900 mb-6">Strava Integration</h2>
+
+                <div class="bg-white rounded-lg shadow p-6 mb-6">
+                    <h3 class="text-xl font-semibold mb-4">Connection Status</h3>
+                    <div x-show="!stravaStatus.connected">
+                        <p class="text-gray-600 mb-4">Connect your Strava account to automatically sync your activities.</p>
+                        <button @click="connectStrava"
+                                class="bg-orange-600 text-white px-6 py-2 rounded-lg hover:bg-orange-700 transition">
+                            Connect with Strava
+                        </button>
+                    </div>
+                    <div x-show="stravaStatus.connected">
+                        <p class="text-green-600 mb-4">✓ Connected to Strava</p>
+                        <div class="space-y-2 text-sm">
+                            <p><span class="text-gray-500">Athlete ID:</span> <span x-text="stravaStatus.strava_athlete_id"></span></p>
+                            <p><span class="text-gray-500">Last Sync:</span> <span x-text="stravaStatus.last_sync ? formatDate(stravaStatus.last_sync) : 'Never'"></span></p>
+                        </div>
+                        <div class="mt-4 space-x-2">
+                            <button @click="syncStrava"
+                                    :disabled="loading.strava"
+                                    class="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition disabled:bg-gray-400">
+                                <span x-show="!loading.strava">Sync Now</span>
+                                <span x-show="loading.strava">Syncing...</span>
+                            </button>
+                            <button @click="disconnectStrava"
+                                    class="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 transition">
+                                Disconnect
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        function app() {
+            return {
+                // API base URL
+                apiUrl: window.location.origin,
+
+                // State
+                showSection: 'dashboard',
+                currentUser: null,
+                workouts: [],
+                activeGoal: null,
+                activeProgram: null,
+                trainingLoad: {},
+                stravaStatus: {},
+                weekDetails: null,
+                loginUserId: '',
+                loading: {
+                    program: false,
+                    strava: false
+                },
+
+                // Forms
+                newUser: {
+                    name: '',
+                    email: '',
+                    unit_preference: 'imperial'
+                },
+                newWorkout: {
+                    date: new Date().toISOString().slice(0, 16),
+                    run_type: 'easy',
+                    metrics: {
+                        distance: 5000,
+                        moving_time: 1800,
+                        elapsed_time: 1800,
+                        average_speed: 2.78,
+                        average_heartrate: null
+                    },
+                    perceived_effort: 5,
+                    notes: ''
+                },
+                newGoal: {
+                    race_distance: 'marathon',
+                    race_date: '',
+                    target_time_seconds: 10800
+                },
+
+                // Initialize
+                async init() {
+                    const userId = localStorage.getItem('userId');
+                    if (userId) {
+                        await this.loadUser(userId);
+                        await this.loadData();
+                    } else {
+                        this.showSection = 'users';
+                    }
+                },
+
+                // User Management
+                async createUser() {
+                    try {
+                        const params = new URLSearchParams({
+                            email: this.newUser.email,
+                            name: this.newUser.name,
+                            unit_preference: this.newUser.unit_preference
+                        });
+                        const response = await fetch(`${this.apiUrl}/users?${params}`, {
+                            method: 'POST'
+                        });
+
+                        if (!response.ok) {
+                            const errorData = await response.json();
+                            throw new Error(errorData.detail || 'Failed to create user');
+                        }
+
+                        const data = await response.json();
+                        localStorage.setItem('userId', data.id);
+                        await this.loadUser(data.id);
+                        this.showSection = 'dashboard';
+                        alert('User created successfully!');
+                    } catch (error) {
+                        alert('Error creating user: ' + error.message);
+                    }
+                },
+
+                async loginWithUserId() {
+                    try {
+                        localStorage.setItem('userId', this.loginUserId);
+                        await this.loadUser(this.loginUserId);
+                        await this.loadData();
+                        this.showSection = 'dashboard';
+                        alert('Logged in successfully!');
+                    } catch (error) {
+                        alert('Error logging in: ' + error.message);
+                    }
+                },
+
+                async loadUser(userId) {
+                    try {
+                        const response = await fetch(`${this.apiUrl}/users/${userId}`);
+                        if (!response.ok) {
+                            throw new Error('User not found');
+                        }
+                        this.currentUser = await response.json();
+                    } catch (error) {
+                        console.error('Error loading user:', error);
+                        throw error;
+                    }
+                },
+
+                // Data Loading
+                async loadData() {
+                    if (!this.currentUser) return;
+                    await Promise.all([
+                        this.loadWorkouts(),
+                        this.loadActiveGoal(),
+                        this.loadActiveProgram(),
+                        this.loadTrainingLoad(),
+                        this.loadStravaStatus()
+                    ]);
+                },
+
+                async loadWorkouts() {
+                    try {
+                        const response = await fetch(`${this.apiUrl}/users/${this.currentUser.id}/workouts?limit=50`);
+                        this.workouts = await response.json();
+                    } catch (error) {
+                        console.error('Error loading workouts:', error);
+                    }
+                },
+
+                async loadActiveGoal() {
+                    try {
+                        const response = await fetch(`${this.apiUrl}/users/${this.currentUser.id}/goals/active`);
+                        if (response.ok) {
+                            this.activeGoal = await response.json();
+                        }
+                    } catch (error) {
+                        console.error('Error loading goal:', error);
+                    }
+                },
+
+                async loadActiveProgram() {
+                    try {
+                        const response = await fetch(`${this.apiUrl}/users/${this.currentUser.id}/training-programs/active`);
+                        if (response.ok) {
+                            this.activeProgram = await response.json();
+                        }
+                    } catch (error) {
+                        console.error('Error loading program:', error);
+                    }
+                },
+
+                async loadTrainingLoad() {
+                    try {
+                        const response = await fetch(`${this.apiUrl}/users/${this.currentUser.id}/training-load`);
+                        this.trainingLoad = await response.json();
+                    } catch (error) {
+                        console.error('Error loading training load:', error);
+                    }
+                },
+
+                async loadStravaStatus() {
+                    try {
+                        const response = await fetch(`${this.apiUrl}/users/${this.currentUser.id}/strava/status`);
+                        this.stravaStatus = await response.json();
+                    } catch (error) {
+                        console.error('Error loading Strava status:', error);
+                    }
+                },
+
+                // Workout Management
+                async createWorkout() {
+                    try {
+                        // Calculate average speed
+                        const speed = this.newWorkout.metrics.distance / this.newWorkout.metrics.moving_time;
+                        this.newWorkout.metrics.average_speed = speed;
+                        this.newWorkout.metrics.elapsed_time = this.newWorkout.metrics.moving_time;
+
+                        const response = await fetch(`${this.apiUrl}/users/${this.currentUser.id}/workouts`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(this.newWorkout)
+                        });
+                        await response.json();
+                        await this.loadWorkouts();
+                        await this.loadTrainingLoad();
+                        alert('Workout logged successfully!');
+
+                        // Reset form
+                        this.newWorkout = {
+                            date: new Date().toISOString().slice(0, 16),
+                            run_type: 'easy',
+                            metrics: {
+                                distance: 5000,
+                                moving_time: 1800,
+                                elapsed_time: 1800,
+                                average_speed: 2.78,
+                                average_heartrate: null
+                            },
+                            perceived_effort: 5,
+                            notes: ''
+                        };
+                    } catch (error) {
+                        alert('Error logging workout: ' + error.message);
+                    }
+                },
+
+                // Goal Management
+                async createGoal() {
+                    try {
+                        const response = await fetch(`${this.apiUrl}/users/${this.currentUser.id}/goals`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(this.newGoal)
+                        });
+                        await response.json();
+                        await this.loadActiveGoal();
+                        alert('Goal set successfully!');
+                    } catch (error) {
+                        alert('Error setting goal: ' + error.message);
+                    }
+                },
+
+                // Training Program
+                async generateProgram() {
+                    if (!this.activeGoal) {
+                        alert('Please set a goal first!');
+                        this.showSection = 'goals';
+                        return;
+                    }
+
+                    this.loading.program = true;
+                    try {
+                        const response = await fetch(`${this.apiUrl}/users/${this.currentUser.id}/training-programs/generate`, {
+                            method: 'POST'
+                        });
+                        await response.json();
+                        await this.loadActiveProgram();
+                        alert('Training program generated successfully!');
+                    } catch (error) {
+                        alert('Error generating program: ' + error.message);
+                    } finally {
+                        this.loading.program = false;
+                    }
+                },
+
+                async loadWeekDetails(weekNumber) {
+                    try {
+                        const response = await fetch(`${this.apiUrl}/training-programs/${this.activeProgram.id}/weeks/${weekNumber}`);
+                        this.weekDetails = await response.json();
+                    } catch (error) {
+                        alert('Error loading week details: ' + error.message);
+                    }
+                },
+
+                // Strava Integration
+                async connectStrava() {
+                    try {
+                        const response = await fetch(`${this.apiUrl}/strava/connect?user_id=${this.currentUser.id}`);
+                        const data = await response.json();
+                        window.location.href = data.authorization_url;
+                    } catch (error) {
+                        alert('Error connecting to Strava: ' + error.message);
+                    }
+                },
+
+                async syncStrava() {
+                    this.loading.strava = true;
+                    try {
+                        const response = await fetch(`${this.apiUrl}/users/${this.currentUser.id}/strava/sync?days_back=30`, {
+                            method: 'POST'
+                        });
+                        const data = await response.json();
+                        await this.loadWorkouts();
+                        await this.loadStravaStatus();
+                        alert(`Synced ${data.total_synced} activities!`);
+                    } catch (error) {
+                        alert('Error syncing Strava: ' + error.message);
+                    } finally {
+                        this.loading.strava = false;
+                    }
+                },
+
+                async disconnectStrava() {
+                    if (!confirm('Are you sure you want to disconnect Strava?')) return;
+                    try {
+                        await fetch(`${this.apiUrl}/users/${this.currentUser.id}/strava/disconnect`, {
+                            method: 'DELETE'
+                        });
+                        this.stravaStatus = { connected: false };
+                        alert('Strava disconnected successfully!');
+                    } catch (error) {
+                        alert('Error disconnecting Strava: ' + error.message);
+                    }
+                },
+
+                // Formatting Helpers
+                formatDate(dateString) {
+                    if (!dateString) return '';
+                    return new Date(dateString).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric'
+                    });
+                },
+
+                formatDistance(meters) {
+                    if (!meters) return '0 m';
+                    const km = meters / 1000;
+                    const miles = meters / 1609.34;
+                    return this.currentUser?.unit_preference === 'imperial'
+                        ? `${miles.toFixed(2)} mi`
+                        : `${km.toFixed(2)} km`;
+                },
+
+                formatDuration(seconds) {
+                    if (!seconds) return '0s';
+                    const hours = Math.floor(seconds / 3600);
+                    const minutes = Math.floor((seconds % 3600) / 60);
+                    const secs = seconds % 60;
+
+                    if (hours > 0) {
+                        return `${hours}h ${minutes}m`;
+                    } else if (minutes > 0) {
+                        return `${minutes}m ${secs}s`;
+                    } else {
+                        return `${secs}s`;
+                    }
+                },
+
+                formatPace(metersPerSecond) {
+                    if (!metersPerSecond) return 'N/A';
+                    const secondsPerMeter = 1 / metersPerSecond;
+                    const secondsPerKm = secondsPerMeter * 1000;
+                    const secondsPerMile = secondsPerMeter * 1609.34;
+
+                    const seconds = this.currentUser?.unit_preference === 'imperial'
+                        ? secondsPerMile
+                        : secondsPerKm;
+
+                    const minutes = Math.floor(seconds / 60);
+                    const secs = Math.floor(seconds % 60);
+                    const unit = this.currentUser?.unit_preference === 'imperial' ? 'mi' : 'km';
+
+                    return `${minutes}:${secs.toString().padStart(2, '0')}/${unit}`;
+                },
+
+                getTSBColor(tsb) {
+                    if (!tsb) return 'text-gray-600';
+                    if (tsb > 15) return 'text-green-600';
+                    if (tsb > -10) return 'text-blue-600';
+                    if (tsb > -30) return 'text-yellow-600';
+                    return 'text-red-600';
+                }
+            }
+        }
+    </script>
+</body>
+</html>

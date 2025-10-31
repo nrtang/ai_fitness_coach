@@ -3,6 +3,8 @@ Main application - FastAPI REST API for AI Fitness Coach
 """
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime, date, timedelta
@@ -50,12 +52,22 @@ ai_coach = AICoach()
 training_load_calc = TrainingLoadCalculator()
 strava_client = StravaClient()
 
+# Mount static files
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
 
 # Startup event
 @app.on_event("startup")
 async def startup_event():
     """Initialize database on startup"""
     init_db()
+
+
+# Serve the web UI
+@app.get("/")
+async def root():
+    """Serve the main web UI"""
+    return FileResponse("static/index.html")
 
 
 # Health check
@@ -930,4 +942,4 @@ async def strava_webhook_event(
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8001)
